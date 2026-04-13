@@ -1,6 +1,6 @@
-#include "UIButton.hpp"
+#include "UITextBox.hpp"
 
-LIR::UI::Button::Button(
+LIR::UI::TextBox::TextBox(
 	BasicWindow* parent,
 	const std::wstring title,
 	int x, int y, int width, int height
@@ -8,5 +8,5 @@ LIR::UI::Button::Button(
 	parent,
 	title,
 	x, y, width, height,
-	WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 0
+	WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | SS_NOTIFY, 0
 ) {}

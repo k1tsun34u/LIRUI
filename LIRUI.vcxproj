@@ -21,8 +21,11 @@
   <ItemGroup>
     <ClCompile Include="UIBasicWindow.cpp" />
     <ClCompile Include="UIButton.cpp" />
+    <ClCompile Include="UICheckBox.cpp" />
     <ClCompile Include="UIControl.cpp" />
     <ClCompile Include="UIDispatcher.cpp" />
+    <ClCompile Include="UILabel.cpp" />
+    <ClCompile Include="UITextBox.cpp" />
     <ClCompile Include="UIWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -31,12 +34,15 @@
     <ClInclude Include="Typedefs.hpp" />
     <ClInclude Include="UIBasicWindow.hpp" />
     <ClInclude Include="UIButton.hpp" />
+    <ClInclude Include="UICheckBox.hpp" />
     <ClInclude Include="UIControl.hpp" />
     <ClInclude Include="UIDispatcher.hpp" />
     <ClInclude Include="UIEventArgs.hpp" />
     <ClInclude Include="UIEventHandlerArray.hpp" />
     <ClInclude Include="UIIControlRenderer.hpp" />
+    <ClInclude Include="UILabel.hpp" />
     <ClInclude Include="UIRenderMode.hpp" />
+    <ClInclude Include="UITextBox.hpp" />
     <ClInclude Include="UIWindow.hpp" />
     <ClInclude Include="UIWindowClass.hpp" />
     <ClInclude Include="UIWorkResult.hpp" />

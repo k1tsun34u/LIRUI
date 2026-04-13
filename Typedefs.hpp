@@ -49,6 +49,9 @@ namespace LIR {
 		class IControlRenderer;
 
 		class Button;
+		class Label;
+		class TextBox;
+		class CheckBox;
 	}
 
 	namespace Mouse {

@@ -1,6 +1,6 @@
-#include "UIButton.hpp"
+#include "UILabel.hpp"
 
-LIR::UI::Button::Button(
+LIR::UI::Label::Label(
 	BasicWindow* parent,
 	const std::wstring title,
 	int x, int y, int width, int height
@@ -8,5 +8,5 @@ LIR::UI::Button::Button(
 	parent,
 	title,
 	x, y, width, height,
-	WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 0
+	WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE | SS_NOTIFY, 0
 ) {}

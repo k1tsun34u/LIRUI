@@ -4,13 +4,12 @@ LIR::UI::Control::Control(
 	BasicWindow* parent,
 	const std::wstring title,
 	int x, int y, int width, int height,
-	std::wstring clazz,
 	DWORD styles, DWORD exStyles
 ) : BasicWindow(
 	parent,
 	title,
 	x, y, width, height,
-	true, clazz,
+	true, ClassName(),
 	styles | WS_CHILD | WS_VISIBLE,
 	exStyles
 ){
