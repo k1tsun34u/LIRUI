@@ -8,5 +8,6 @@ LIR::UI::Button::Button(
 	parent,
 	title,
 	x, y, width, height,
+	ClassName(),
 	WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 0
 ) {}

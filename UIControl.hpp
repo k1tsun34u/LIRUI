@@ -13,6 +13,7 @@ namespace LIR {
 				BasicWindow* parent,
 				const std::wstring title,
 				int x, int y, int width, int height,
+				std::wstring clazz,
 				DWORD styles = 0,
 				DWORD exStyles = 0
 			);
@@ -27,7 +28,7 @@ namespace LIR {
 			RenderMode							_renderMode;
 			std::unique_ptr<IControlRenderer>	_renderer;
 
-			virtual const wchar_t* ClassName() const { return L""; }
+			virtual const wchar_t* ClassName() const = 0;
 		};
 	}
 }

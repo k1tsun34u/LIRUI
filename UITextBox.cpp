@@ -8,5 +8,6 @@ LIR::UI::TextBox::TextBox(
 	parent,
 	title,
 	x, y, width, height,
+	ClassName(),
 	WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | SS_NOTIFY, 0
 ) {}

@@ -8,5 +8,6 @@ LIR::UI::CheckBox::CheckBox(
 	parent,
 	title,
 	x, y, width, height,
+	ClassName(),
 	WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | SS_NOTIFY, 0
 ) {}
