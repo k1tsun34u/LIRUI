@@ -6,5 +6,5 @@
   <Folder Name="/Элементы решения/">
     <File Path="README.md" />
   </Folder>
-  <Project Path="LIRUI.vcxproj" />
+  <Project Path="LIRUI.vcxproj" Id="61b22a12-d154-4fa1-8f33-84ab6610cf90" />
 </Solution>
