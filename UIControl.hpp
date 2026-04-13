@@ -27,7 +27,7 @@ namespace LIR {
 			RenderMode							_renderMode;
 			std::unique_ptr<IControlRenderer>	_renderer;
 
-			virtual const wchar_t* ClassName() const = 0;
+			virtual const wchar_t* ClassName() const { return L""; }
 		};
 	}
 }
