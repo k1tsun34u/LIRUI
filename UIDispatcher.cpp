@@ -8,12 +8,11 @@ std::future<DWORD> LIR::UI::Dispatcher::_threadIDFuture;
 std::queue<std::function<void()>> LIR::UI::Dispatcher::_tasks;
 std::mutex LIR::UI::Dispatcher::_tasksMutex;
 
-bool LIR::UI::Dispatcher::Init() {
+bool LIR::UI::Dispatcher::EnsureInitialized() {
 	if (IsAlive()) return true;
 
 	_threadIDPromise = std::promise<DWORD>();
 	_threadIDFuture = _threadIDPromise.get_future();
-
 	_threadHandle = CreateThread(nullptr, 0, ThreadProc, nullptr, 0, nullptr);
 	if (!_threadHandle) return false;
 
@@ -46,7 +45,12 @@ bool LIR::UI::Dispatcher::IsUIThread() {
 }
 
 bool LIR::UI::Dispatcher::Post(std::function<void()> task) {
-	if (!Init()) return false;
+	if (!EnsureInitialized()) return false;
+
+	if (IsUIThread()) {
+		task();
+		return true;
+	}
 
 	{
 		std::lock_guard<std::mutex> lock(_tasksMutex);
@@ -69,7 +73,7 @@ void LIR::UI::Dispatcher::ProcessTasks() {
 
 	while (!local.empty()) {
 		try { local.front()(); }
-		catch (...) { OutputDebugStringW(L"Dispatcher task exception\n"); }
+		catch (...) { OutputDebugStringA("Dispatcher task exception\n"); }
 		local.pop();
 	}
 }

@@ -268,7 +268,7 @@ bool LIR::UI::BasicWindow::SetExStylesSync(DWORD exStyles) {
 }
 
 LIR::UI::WorkResult LIR::UI::BasicWindow::Work() {
-	if (!Dispatcher::Init()) return WorkResult::ErrorWindowWorkAsyncThreadNotCreated;
+	if (!Dispatcher::EnsureInitialized()) return WorkResult::ErrorWindowWorkAsyncThreadNotCreated;
 
 	auto promise = std::make_shared<std::promise<WorkResult>>();
 	auto future = promise->get_future();

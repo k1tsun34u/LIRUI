@@ -5,7 +5,7 @@ namespace LIR {
 	namespace UI {
 		class Dispatcher {
 		public:
-			static bool Init();
+			static bool EnsureInitialized();
 			static void Shutdown();
 
 			static DWORD GetThreadID();
@@ -17,7 +17,7 @@ namespace LIR {
 
 			template<typename T>
 			static T Invoke(std::function<T()> func) {
-				if (GetCurrentThreadId() == _threadID) return func();
+				if (IsUIThread()) return func();
 
 				auto promise = std::make_shared<std::promise<T>>();
 				auto future = promise->get_future();
@@ -29,13 +29,16 @@ namespace LIR {
 
 				if (future.wait_for(
 					std::chrono::seconds(5)) != std::future_status::ready
-				) OutputDebugStringA("Dispatcher timeout");
+				) OutputDebugStringA("Dispatcher timeout\n");
 				return future.get();
 			}
 
 			template<>
 			static void Invoke(std::function<void()> func) {
-				if (GetCurrentThreadId() == _threadID) return func();
+				if (IsUIThread()) {
+					func();
+					return;
+				}
 
 				auto promise = std::make_shared<std::promise<void>>();
 				auto future = promise->get_future();
@@ -50,7 +53,7 @@ namespace LIR {
 
 				if (future.wait_for(
 					std::chrono::seconds(5)) != std::future_status::ready
-				) OutputDebugStringA("Dispatcher timeout");
+				) OutputDebugStringA("Dispatcher timeout\n");
 				return future.get();
 			}
 
