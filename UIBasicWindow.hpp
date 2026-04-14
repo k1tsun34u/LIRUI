@@ -44,6 +44,7 @@ namespace LIR {
 
 			WorkResult Work();
 			void Close();
+			void Destroy();
 
 			void AddChild(BasicWindow* window);
 			BasicWindow* GetChild(size_t index) const;
@@ -51,16 +52,24 @@ namespace LIR {
 			void RemoveChild(BasicWindow* window);
 			size_t GetNumChildren() const;
 
-			EventHandlerArray<const MouseEnterEventArgs&>	MouseEnter;
-			EventHandlerArray<const MouseLeaveEventArgs&>	MouseLeave;
-			EventHandlerArray<const MouseMoveEventArgs&>	MouseMove;
-			EventHandlerArray<const MouseDownEventArgs&>	MouseDown;
-			EventHandlerArray<const MouseUpEventArgs&>		MouseUp;
-			EventHandlerArray<const ClickEventArgs&>		Click;
-			EventHandlerArray<const DblClkEventArgs&>		DblClk;
-			EventHandlerArray<const DragStartEventArgs&>	DragStart;
-			EventHandlerArray<const DragEventArgs&>			Drag;
-			EventHandlerArray<const DragEndEventArgs&>		DragEnd;
+			EventHandlerArray<EventArgs&>					OnCreate;
+			EventHandlerArray<EventArgs&>					OnClose;
+			EventHandlerArray<EventArgs&>					OnDestroy;
+			EventHandlerArray<MouseEnterEventArgs&>			OnMouseEnter;
+			EventHandlerArray<MouseLeaveEventArgs&>			OnMouseLeave;
+			EventHandlerArray<MouseMoveEventArgs&>			OnMouseMove;
+			EventHandlerArray<MouseDownEventArgs&>			OnMouseDown;
+			EventHandlerArray<MouseUpEventArgs&>			OnMouseUp;
+			EventHandlerArray<ClickEventArgs&>				OnClick;
+			EventHandlerArray<DblClkEventArgs&>				OnDblClk;
+			EventHandlerArray<DragStartEventArgs&>			OnDragStart;
+			EventHandlerArray<DragEventArgs&>				OnDrag;
+			EventHandlerArray<DragEndEventArgs&>			OnDragEnd;
+			EventHandlerArray<EventArgs&>					OnFocus;
+			EventHandlerArray<EventArgs&>					OnFocusLose;
+			EventHandlerArray<KeyDownEventArgs&>			OnKeyDown;
+			EventHandlerArray<KeyUpEventArgs&>				OnKeyUp;
+			EventHandlerArray<InputEventArgs&>				OnInput;
 		protected:
 			void GetMouseCtx(LPARAM lParam, ULONGLONG& time, POINT& pos);
 
@@ -95,24 +104,31 @@ namespace LIR {
 			static std::once_flag							_registerClassFlag;
 			static std::once_flag							_createThreadFlag;
 			static bool										_rootClassRegistered;
-			// static std::atomic<int>							_nextMenuIndex;
 			static std::atomic<int>							_nextSubclassID;
 			mutable std::shared_mutex						_eventHandlersMutex;
 		private:
 			WorkResult InitSync();
 			static bool RegisterRootClass();
 
-			void HandleMouseMove(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleMouseLeave(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleLMBDown(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleLMBUp(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleMMBDown(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleMMBUp(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleRMBDown(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleRMBUp(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleLMBDblClk(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleMMBDblClk(UINT msg, WPARAM wParam, LPARAM lParam);
-			void HandleRMBDblClk(UINT msg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleClose(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleMouseLeave(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleLMBDown(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleLMBUp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleMMBDown(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleMMBUp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleRMBDown(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleRMBUp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleLMBDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleMMBDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleRMBDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleFocus(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleFocusLose(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleKeyUp(UINT uMsg, WPARAM wParam, LPARAM lParam);
+			EventResult HandleInput(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 			static LRESULT CALLBACK GlobalWindowProcedure(
 				HWND hWnd,
@@ -128,11 +144,10 @@ namespace LIR {
 				DWORD_PTR dwRefData
 			);
 
-			static bool DispatchEvent(
+			static EventResult DispatchEvent(
 				BasicWindow* window,
 				UINT uMsg,
-				WPARAM wParam, LPARAM lParam,
-				LRESULT* res
+				WPARAM wParam, LPARAM lParam
 			);
 		};
 	}

@@ -50,5 +50,27 @@ namespace LIR {
 		struct DragEndEventArgs : public EventArgs {
 			POINT					EndPos;
 		};
+
+		struct KeyDownEventArgs : public EventArgs {
+			uint8_t					Key;
+			size_t					NumPressesWhileHolding;
+			uint8_t					ScanCode;
+			bool					IsExtended;
+			bool					WasDown;
+		};
+
+		struct KeyUpEventArgs : public EventArgs {
+			uint8_t					Key;
+			uint8_t					ScanCode;
+			bool					IsExtended;
+		};
+		
+		struct InputEventArgs : public EventArgs {
+			wchar_t					Char;
+			size_t					NumPressesWhileHolding;
+			uint8_t					ScanCode;
+			bool					IsExtended;
+			bool					WasDown;
+		};
 	}
 }

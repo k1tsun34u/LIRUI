@@ -11,6 +11,7 @@ namespace LIR {
 			virtual void DrawLabel(Label* label, HDC hDC) = 0;
 			virtual void DrawTextBox(TextBox* textBox, HDC hDC) = 0;
 			virtual void DrawCheckBox(CheckBox* checkBox, HDC hDC) = 0;
+			virtual void DrawRadioButton(RadioButton* radioButton, HDC hDC) = 0;
 		};
 	}
 }

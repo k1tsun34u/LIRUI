@@ -2,7 +2,11 @@
 ## Example
 ```cpp
 #include "UIWindow.hpp"
+#include "UILabel.hpp"
 #include "UIButton.hpp"
+#include "UITextBox.hpp"
+#include "UICheckBox.hpp"
+#include "UIRadioButton.hpp"
 
 int WINAPI wWinMain(
 	_In_ HINSTANCE hInstance,
@@ -10,35 +14,60 @@ int WINAPI wWinMain(
 	_In_ LPWSTR lpCmdLine,
 	_In_ int nShowCmd
 ) {
-	LIR::UI::Window mainWnd1(nullptr, L"A", 0, 0, 800, 600);
-	mainWnd1.Work();
-	mainWnd1.MouseMove += [](const LIR::UI::MouseMoveEventArgs& args) {
-		std::wstring title = L"Mouse: X=";
-		title += std::to_wstring(args.CurrentPos.x);
-		title += L", Y=";
-		title += std::to_wstring(args.CurrentPos.y);
-		args.Sender->SetTitleSync(title);
+	const int scrWidth = GetSystemMetrics(SM_CXSCREEN);
+	const int scrHeight = GetSystemMetrics(SM_CYSCREEN);
+	const int scrCenterX = scrWidth / 2;
+	const int scrCenterY = scrHeight / 2;
+
+	const int mainWindowWidth = scrWidth / 2;
+	const int mainWindowHeight = scrHeight / 2;
+	const int mainWindowX = scrCenterX - mainWindowWidth / 2;
+	const int mainWindowY = scrCenterY - mainWindowHeight / 2;
+	LIR::UI::Window mainWindow(nullptr, L"Test", mainWindowX, mainWindowY, mainWindowWidth, mainWindowHeight);
+	mainWindow.Work();
+	mainWindow.OnClose += [](LIR::UI::EventArgs& args) -> LIR::UI::EventResult {
+		LIR::UI::EventResult result{};
+		result.AllowDefault = false;			// prevent DefWindowProc/DefSubclassProc
+		return result;
 	};
 
-	LIR::UI::Button btn1(&mainWnd1, L"Click me!", 0, 0, 200, 80);
-	btn1.Click += [](const LIR::UI::ClickEventArgs& args) {
-		args.Sender->MouseMove += [](const LIR::UI::MouseMoveEventArgs& args) {
-			int x, y;
-			args.Sender->GetPos(x, y);
+	const int lblHeight = 80;
+	LIR::UI::Label lbl(&mainWindow, L"Label", 0, 0, mainWindowWidth, lblHeight);
+	lbl.Work();
 
-			args.Sender->SetPosSync(x + 1, y + 1);
-		};
+	LIR::UI::Button btn(&mainWindow, L"Button", 0, lblHeight, mainWindowWidth, lblHeight);
+	btn.Work();
+	btn.OnClick += [](LIR::UI::ClickEventArgs& args) -> LIR::UI::EventResult {
+		LIR::UI::CheckBox* checkBox = (LIR::UI::CheckBox*)args.Sender->GetParent()->GetChild(3);
+		if (!checkBox) MessageBoxA(0, "No child... :(", "Error", MB_OK | MB_ICONERROR);
+		else checkBox->SetTitleSync(checkBox->IsChecked() ? L"Checked" : L"Not checked");
+
+		return LIR::UI::EventResult{};
 	};
 
-	btn1.Work();
-	LIR::UI::Button btn2(&btn1, L"Click me?", 10, 10, 50, 50);
-	btn2.Click += [](const LIR::UI::ClickEventArgs& args) {
-		args.Sender->GetParent()->Close();
+	const int txtBoxY = lblHeight * 2;
+	LIR::UI::TextBox txtBox(&mainWindow, L"TextBox", 0, txtBoxY, mainWindowWidth, lblHeight);
+	txtBox.Work();
+	txtBox.OnInput += [](LIR::UI::InputEventArgs& args) -> LIR::UI::EventResult {
+		LIR::UI::TextBox* txtBox = (LIR::UI::TextBox*)args.Sender;
+		args.Sender->GetParent()->SetTitleSync(txtBox->GetText());
+		return LIR::UI::EventResult{};
 	};
-	btn2.Work();
+
+	const int checkBoxY = txtBoxY + lblHeight;
+	LIR::UI::CheckBox checkBox(&mainWindow, L"CheckBox", 0, checkBoxY, mainWindowWidth, lblHeight);
+	checkBox.Work();
+
+	const int radioBtn1Y = checkBoxY + lblHeight;
+	LIR::UI::RadioGroup radioGroup{};
+	LIR::UI::RadioButton radioBtn1(&mainWindow, L"Radio Button 1", 0, radioBtn1Y, mainWindowWidth, lblHeight, &radioGroup);
+	radioBtn1.Work();
+
+	const int radioBtn2Y = radioBtn1Y + lblHeight;
+	LIR::UI::RadioButton radioBtn2(&mainWindow, L"Radio Button 2", 0, radioBtn2Y, mainWindowWidth, lblHeight, &radioGroup);
+	radioBtn2.Work();
+
 	Sleep(20000);
-
-	// Stop UI thread
 	LIR::UI::Dispatcher::Shutdown();
 	return 0;
 }

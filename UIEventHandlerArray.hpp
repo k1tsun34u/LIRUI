@@ -1,4 +1,5 @@
 #include "Typedefs.hpp"
+#include "UIEventResult.hpp"
 #include "UIDispatcher.hpp"
 
 namespace LIR {
@@ -6,7 +7,7 @@ namespace LIR {
 		template<typename... Args>
 		class EventHandlerArray {
 		public:
-			using Handler = std::function<void(const Args&...)>;
+			using Handler = std::function<EventResult(Args&...)>;
 		
 			size_t Add(Handler handler) {
 				if (!Dispatcher::IsUIThread()) return Dispatcher::Invoke<size_t>([this, handler = std::move(handler)]() mutable {
@@ -35,20 +36,30 @@ namespace LIR {
 				});
 			}
 			
-			void Invoke(const Args&... args) {
+			EventResult Invoke(Args&... args) {
+				EventResult result;
 				if (!Dispatcher::IsUIThread()) {
 					auto tuple = std::make_tuple(std::forward<Args>(args)...);
-					Dispatcher::Post([this, tuple]() {
+					Dispatcher::Post([this, tuple]() mutable {
 						std::apply([this](auto&&... unpacked) {
 							Invoke(std::forward<decltype(unpacked)>(unpacked)...);
 						}, tuple);
 					});
 
-					return;
+					return result;
 				}
 
 				auto handlers = _handlers;
-				for (auto& e : handlers) e.handler(args...);
+				for (auto& e : handlers) {
+					EventResult tmp = e.handler(args...);
+					if (!tmp.AllowDefault) result.AllowDefault = false;
+					if (tmp.Handled) {
+						result.Handled = true;
+						break;
+					}
+				}
+
+				return result;
 			}
 
 			template<typename F>
@@ -67,7 +78,7 @@ namespace LIR {
 
 			std::vector<Entry>		_handlers;
 			
-			// TODO: not safe
+			// TODO: fix overflow (how?)
 			size_t					_nextId = 1;
 		};
 	}

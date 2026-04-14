@@ -21,6 +21,7 @@ namespace LIR {
 			void SetRenderer(std::unique_ptr<IControlRenderer> renderer);
 			void SetRenderMode(RenderMode renderMode);
 			std::unique_ptr<IControlRenderer>& GetRenderer();
+			RenderMode GetRenderMode() const;
 
 			virtual void OnPaint(HDC hDC) = 0;
 		protected:

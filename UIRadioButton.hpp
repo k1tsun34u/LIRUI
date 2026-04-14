@@ -1,29 +1,33 @@
-#pragma once
 #include "UIControl.hpp"
+#include "UIRadioGroup.hpp"
 
 namespace LIR {
 	namespace UI {
-		class CheckBox : public Control {
+		class RadioButton : public Control {
 		public:
-			CheckBox(
+			RadioButton(
 				BasicWindow* parent,
 				const std::wstring title,
-				int x, int y, int width, int height
+				int x, int y, int width, int height,
+				RadioGroup* group
 			);
+
+			~RadioButton();
 
 			bool IsChecked() const;
 			void SetChecked(bool checked);
-			void ToggleState(void);
+			void Select();
 
 			void OnPaint(HDC hDC) override {
-				if (_renderer) _renderer->DrawCheckBox(this, hDC);
+				if (_renderer) _renderer->DrawRadioButton(this, hDC);
 			}
 
 			const wchar_t* ClassName() const override {
 				return L"BUTTON";
 			}
 		protected:
-			bool				_isChecked = false;
+			bool							_isChecked = false;
+			RadioGroup*						_group;
 		};
 	}
 }

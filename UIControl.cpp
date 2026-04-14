@@ -38,3 +38,7 @@ void LIR::UI::Control::SetRenderMode(RenderMode renderMode) {
 std::unique_ptr<LIR::UI::IControlRenderer>& LIR::UI::Control::GetRenderer() {
 	return _renderer;
 }
+
+LIR::UI::RenderMode LIR::UI::Control::GetRenderMode() const {
+	return _renderMode;
+}

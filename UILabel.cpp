@@ -9,5 +9,5 @@ LIR::UI::Label::Label(
 	title,
 	x, y, width, height,
 	ClassName(),
-	WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE | SS_NOTIFY, 0
+	WS_CHILD | WS_VISIBLE | SS_LEFT, 0
 ) {}

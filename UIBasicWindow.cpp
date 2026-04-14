@@ -3,7 +3,6 @@
 std::once_flag				LIR::UI::BasicWindow::_registerClassFlag;
 std::once_flag				LIR::UI::BasicWindow::_createThreadFlag;
 bool						LIR::UI::BasicWindow::_rootClassRegistered = false;
-// std::atomic<int>			LIR::UI::BasicWindow::_nextMenuIndex = 1000;
 std::atomic<int>			LIR::UI::BasicWindow::_nextSubclassID = 0;
 
 LIR::UI::BasicWindow::BasicWindow(
@@ -294,6 +293,21 @@ void LIR::UI::BasicWindow::Close() {
 
 	if (_destroyed.load()) return;
 
+	HWND hWnd = _handle;
+	if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
+}
+
+void LIR::UI::BasicWindow::Destroy() {
+	if (!Dispatcher::IsUIThread()) {
+		Dispatcher::Invoke<void>([this]() {
+			Destroy();
+		});
+
+		return;
+	}
+
+	if (_destroyed.load()) return;
+
 	std::vector<BasicWindow*> children = _children;
 	for (auto* child : children) if (child) child->Close();
 	_children.clear();
@@ -306,7 +320,6 @@ void LIR::UI::BasicWindow::Close() {
 
 	DestroyWindow(_handle);
 	_handle = nullptr;
-	// if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
 }
 
 void LIR::UI::BasicWindow::GetMouseCtx(LPARAM lParam, ULONGLONG& time, POINT& pos) {
@@ -423,6 +436,9 @@ LIR::UI::WorkResult LIR::UI::BasicWindow::InitSync() {
 
 	ShowWindow(_handle, SW_SHOW);
 	UpdateWindow(_handle);
+
+	EventArgs createArgs = { this, GetTickCount64() };
+	OnCreate.Invoke(createArgs);
 	return WorkResult::Success;
 }
 
@@ -448,7 +464,22 @@ bool LIR::UI::BasicWindow::RegisterRootClass() {
 	return _rootClassRegistered = true;
 }
 
-void LIR::UI::BasicWindow::HandleMouseMove(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleCreate(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	EventArgs eventArgs = { this, GetTickCount64() };
+	return OnCreate.Invoke(eventArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleClose(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	EventArgs closeArgs = { this, GetTickCount64() };
+	return OnClose.Invoke(closeArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	EventArgs eventArgs = { this, GetTickCount64() };
+	return OnDestroy.Invoke(eventArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -468,46 +499,50 @@ void LIR::UI::BasicWindow::HandleMouseMove(UINT msg, WPARAM wParam, LPARAM lPara
 		_isHovered = true;
 
 		MouseEnterEventArgs mouseEnterArgs = { this, time, pos };
-		MouseEnter.Invoke(mouseEnterArgs);
+		OnMouseEnter.Invoke(mouseEnterArgs);
 	}
 
 	MouseMoveEventArgs mouseMoveArgs = { this, time, pos };
-	MouseMove.Invoke(mouseMoveArgs);
+	EventResult res = OnMouseMove.Invoke(mouseMoveArgs);
 
 	if (_isLMBDown) {
 		if (!_isDragging) {
 			_isDragging = true;
 
 			DragStartEventArgs dragStartArgs = { this, time, pos };
-			DragStart.Invoke(dragStartArgs);
+			OnDragStart.Invoke(dragStartArgs);
 		}
 
 		if (_isCaptured) {
 			DragEventArgs dragArgs = { this, time, pos };
-			Drag.Invoke(dragArgs);
+			OnDrag.Invoke(dragArgs);
 		}
 	}
+
+	return res;
 }
 
-void LIR::UI::BasicWindow::HandleMouseLeave(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleMouseLeave(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
 
 	_trackingMouseLeave = false;
 
+	EventResult res{};
 	if (_isHovered) {
 		_isHovered = false;
 
 		MouseLeaveEventArgs mouseLeaveArgs = { this, time, pos };
-		MouseLeave.Invoke(mouseLeaveArgs);
+		res = OnMouseLeave.Invoke(mouseLeaveArgs);
 	}
 
 	_isDragging = false;
 	_isCaptured = false;
+	return res;
 }
 
-void LIR::UI::BasicWindow::HandleLMBDown(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleLMBDown(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -517,10 +552,10 @@ void LIR::UI::BasicWindow::HandleLMBDown(UINT msg, WPARAM wParam, LPARAM lParam)
 	_lmbDownPos = pos;
 
 	MouseDownEventArgs mouseDownArgs = { this, time, pos, Mouse::Button::Left };
-	MouseDown.Invoke(mouseDownArgs);
+	return OnMouseDown.Invoke(mouseDownArgs);
 }
 
-void LIR::UI::BasicWindow::HandleLMBUp(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleLMBUp(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -530,22 +565,24 @@ void LIR::UI::BasicWindow::HandleLMBUp(UINT msg, WPARAM wParam, LPARAM lParam) {
 	_isCaptured = false;
 
 	MouseUpEventArgs mouseUpArgs = { this, time, pos, Mouse::Button::Left };
-	MouseUp.Invoke(mouseUpArgs);
+	EventResult res = OnMouseUp.Invoke(mouseUpArgs);
 
 	if (wasPressed && _isHovered) {
 		ClickEventArgs mouseClickArgs = { this, time, pos, Mouse::Button::Left };
-		Click.Invoke(mouseClickArgs);
+		OnClick.Invoke(mouseClickArgs);
 	}
 
 	if (_isDragging) {
 		_isDragging = false;
 
 		DragEndEventArgs dragEndArgs = { this, time, pos };
-		DragEnd.Invoke(dragEndArgs);
+		OnDragEnd.Invoke(dragEndArgs);
 	}
+
+	return res;
 }
 
-void LIR::UI::BasicWindow::HandleMMBDown(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleMMBDown(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -553,10 +590,10 @@ void LIR::UI::BasicWindow::HandleMMBDown(UINT msg, WPARAM wParam, LPARAM lParam)
 	_isMMBDown = true;
 
 	MouseDownEventArgs mouseDownArgs = { this, time, pos, Mouse::Button::Middle };
-	MouseDown.Invoke(mouseDownArgs);
+	return OnMouseDown.Invoke(mouseDownArgs);
 }
 
-void LIR::UI::BasicWindow::HandleMMBUp(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleMMBUp(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -565,15 +602,17 @@ void LIR::UI::BasicWindow::HandleMMBUp(UINT msg, WPARAM wParam, LPARAM lParam) {
 	_isMMBDown = false;
 
 	MouseUpEventArgs mouseUpArgs = { this, time, pos, Mouse::Button::Middle };
-	MouseUp.Invoke(mouseUpArgs);
+	EventResult res = OnMouseUp.Invoke(mouseUpArgs);
 
 	if (wasPressed && _isHovered) {
 		ClickEventArgs mouseClickArgs = { this, time, pos, Mouse::Button::Middle };
-		Click.Invoke(mouseClickArgs);
+		OnClick.Invoke(mouseClickArgs);
 	}
+
+	return res;
 }
 
-void LIR::UI::BasicWindow::HandleRMBDown(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleRMBDown(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -581,10 +620,10 @@ void LIR::UI::BasicWindow::HandleRMBDown(UINT msg, WPARAM wParam, LPARAM lParam)
 	_isRMBDown = true;
 
 	MouseDownEventArgs mouseDownArgs = { this, time, pos, Mouse::Button::Right };
-	MouseDown.Invoke(mouseDownArgs);
+	return OnMouseDown.Invoke(mouseDownArgs);
 }
 
-void LIR::UI::BasicWindow::HandleRMBUp(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleRMBUp(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
@@ -593,39 +632,87 @@ void LIR::UI::BasicWindow::HandleRMBUp(UINT msg, WPARAM wParam, LPARAM lParam) {
 	_isRMBDown = false;
 
 	MouseUpEventArgs mouseUpArgs = { this, time, pos, Mouse::Button::Right };
-	MouseUp.Invoke(mouseUpArgs);
+	EventResult res = OnMouseUp.Invoke(mouseUpArgs);
 
 	if (wasPressed && _isHovered) {
 		ClickEventArgs mouseClickArgs = { this, time, pos, Mouse::Button::Right };
-		Click.Invoke(mouseClickArgs);
+		OnClick.Invoke(mouseClickArgs);
 	}
+
+	return res;
 }
 
-void LIR::UI::BasicWindow::HandleLMBDblClk(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleLMBDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
 
 	DblClkEventArgs dblClkArgs = { this, time, pos, Mouse::Button::Left };
-	DblClk.Invoke(dblClkArgs);
+	return OnDblClk.Invoke(dblClkArgs);
 }
 
-void LIR::UI::BasicWindow::HandleMMBDblClk(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleMMBDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
 
 	DblClkEventArgs dblClkArgs = { this, time, pos, Mouse::Button::Middle };
-	DblClk.Invoke(dblClkArgs);
+	return OnDblClk.Invoke(dblClkArgs);
 }
 
-void LIR::UI::BasicWindow::HandleRMBDblClk(UINT msg, WPARAM wParam, LPARAM lParam) {
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleRMBDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	ULONGLONG time;
 	POINT pos;
 	GetMouseCtx(lParam, time, pos);
 
 	DblClkEventArgs dblClkArgs = { this, time, pos, Mouse::Button::Right };
-	DblClk.Invoke(dblClkArgs);
+	return OnDblClk.Invoke(dblClkArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleFocus(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	EventArgs clickArgs = { this, GetTickCount64() };
+	return OnFocus.Invoke(clickArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleFocusLose(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	EventArgs clickArgs = { this, GetTickCount64() };
+	return OnFocusLose.Invoke(clickArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	KeyDownEventArgs keyDownArgs = {
+		this, GetTickCount64(),
+		(uint8_t)wParam,							// key
+		(size_t)(lParam) & 0xffff,					// num presses while holding
+		(uint8_t)(((size_t)(lParam) >> 16) & 0xff),	// scan code
+		(bool)((((size_t)lParam) >> 24) & 1),		// is extended
+		(bool)((((size_t)lParam) >> 30) & 1)		// was down before
+	};
+
+	return OnKeyDown.Invoke(keyDownArgs);
+}
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleKeyUp(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	KeyUpEventArgs keyUpArgs = {
+		this, GetTickCount64(),
+		(uint8_t)wParam,							// key
+		(uint8_t)(((size_t)(lParam) >> 16) & 0xff),	// scan code
+		(bool)((((size_t)lParam) >> 24) & 1)		// is extended
+	};
+
+	return OnKeyUp.Invoke(keyUpArgs);
+}
+
+LIR::UI::EventResult LIR::UI::BasicWindow::HandleInput(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	InputEventArgs inputArgs = {
+		this, GetTickCount64(),
+		(wchar_t)wParam,							// char
+		(size_t)(lParam) & 0xffff,					// num presses while holding
+		(uint8_t)(((size_t)(lParam) >> 16) & 0xff),	// scan code
+		(bool)((((size_t)lParam) >> 24) & 1),		// is extended
+		(bool)((((size_t)lParam) >> 30) & 1)		// was down before
+	};
+
+	return OnInput.Invoke(inputArgs);
 }
 
 LRESULT CALLBACK LIR::UI::BasicWindow::GlobalWindowProcedure(
@@ -645,10 +732,8 @@ LRESULT CALLBACK LIR::UI::BasicWindow::GlobalWindowProcedure(
 	}
 	else window = (BasicWindow*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
-	if (window) {
-		LRESULT res = 0;
-		if (DispatchEvent(window, uMsg, wParam, lParam, &res)) return res;
-	}
+	EventResult res{};
+	if (window) res = DispatchEvent(window, uMsg, wParam, lParam);
 
 	if (uMsg == WM_NCDESTROY) {
 		if (window) {
@@ -657,6 +742,7 @@ LRESULT CALLBACK LIR::UI::BasicWindow::GlobalWindowProcedure(
 		}
 	}
 
+	if (!res.AllowDefault) return 0;
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
@@ -669,10 +755,8 @@ LRESULT CALLBACK LIR::UI::BasicWindow::GlobalSubclassProcedure(
 ) {
 	BasicWindow* window = (BasicWindow*)dwRefData;
 
-	if (window) {
-		LRESULT res = 0;
-		if (DispatchEvent(window, uMsg, wParam, lParam, &res)) return res;
-	}
+	EventResult res{};
+	if (window) res = DispatchEvent(window, uMsg, wParam, lParam);
 
 	if (uMsg == WM_NCDESTROY) {
 		if (window) {
@@ -681,74 +765,34 @@ LRESULT CALLBACK LIR::UI::BasicWindow::GlobalSubclassProcedure(
 		}
 	}
 
+	if (!res.AllowDefault) return 0;
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
-bool LIR::UI::BasicWindow::DispatchEvent(
+LIR::UI::EventResult LIR::UI::BasicWindow::DispatchEvent(
 	BasicWindow* window,
 	UINT uMsg,
-	WPARAM wParam, LPARAM lParam,
-	LRESULT* res
+	WPARAM wParam, LPARAM lParam
 ) {
-	bool handled = false;
 	switch (uMsg) {
-	case WM_MOUSEMOVE: {
-		window->HandleMouseMove(uMsg, wParam, lParam);
-		handled = true;
-		break;
+	case WM_CLOSE: return window->HandleClose(uMsg, wParam, lParam);
+	case WM_DESTROY: return window->HandleDestroy(uMsg, wParam, lParam);
+	case WM_MOUSEMOVE: return window->HandleMouseMove(uMsg, wParam, lParam);
+	case WM_MOUSELEAVE: return window->HandleMouseLeave(uMsg, wParam, lParam);
+	case WM_LBUTTONDOWN: return window->HandleLMBDown(uMsg, wParam, lParam);
+	case WM_LBUTTONUP: return window->HandleLMBUp(uMsg, wParam, lParam);
+	case WM_MBUTTONDOWN: return window->HandleMMBDown(uMsg, wParam, lParam);
+	case WM_MBUTTONUP: return window->HandleMMBUp(uMsg, wParam, lParam);
+	case WM_RBUTTONDOWN: return window->HandleRMBDown(uMsg, wParam, lParam);
+	case WM_RBUTTONUP: return window->HandleRMBUp(uMsg, wParam, lParam);
+	case WM_LBUTTONDBLCLK: return window->HandleLMBDblClk(uMsg, wParam, lParam);
+	case WM_MBUTTONDBLCLK: return window->HandleMMBDblClk(uMsg, wParam, lParam);
+	case WM_RBUTTONDBLCLK: return window->HandleRMBDblClk(uMsg, wParam, lParam);
+	case WM_SETFOCUS: return window->HandleFocus(uMsg, wParam, lParam);
+	case WM_KILLFOCUS: return window->HandleFocusLose(uMsg, wParam, lParam);
+	case WM_KEYDOWN: return window->HandleKeyDown(uMsg, wParam, lParam);
+	case WM_KEYUP: return window->HandleKeyUp(uMsg, wParam, lParam);
+	case WM_CHAR: return window->HandleInput(uMsg, wParam, lParam);
+	default: return EventResult{};
 	}
-	case WM_MOUSELEAVE: {
-		window->HandleMouseLeave(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_LBUTTONDOWN: {
-		window->HandleLMBDown(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_LBUTTONUP: {
-		window->HandleLMBUp(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_MBUTTONDOWN: {
-		window->HandleMMBDown(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_MBUTTONUP: {
-		window->HandleMMBUp(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_RBUTTONDOWN: {
-		window->HandleRMBDown(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_RBUTTONUP: {
-		window->HandleRMBUp(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_LBUTTONDBLCLK: {
-		window->HandleLMBDblClk(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_MBUTTONDBLCLK: {
-		window->HandleMMBDblClk(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	case WM_RBUTTONDBLCLK: {
-		window->HandleRMBDblClk(uMsg, wParam, lParam);
-		handled = true;
-		break;
-	}
-	}
-
-	if (handled && res) *res = 0;
-	return handled;
 }

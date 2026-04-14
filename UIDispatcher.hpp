@@ -27,9 +27,6 @@ namespace LIR {
 					catch (...) { promise->set_exception(std::current_exception()); }
 				});
 
-				if (future.wait_for(
-					std::chrono::seconds(5)) != std::future_status::ready
-				) OutputDebugStringA("Dispatcher timeout\n");
 				return future.get();
 			}
 
@@ -51,9 +48,6 @@ namespace LIR {
 					catch (...) { promise->set_exception(std::current_exception()); }
 				});
 
-				if (future.wait_for(
-					std::chrono::seconds(5)) != std::future_status::ready
-				) OutputDebugStringA("Dispatcher timeout\n");
 				return future.get();
 			}
 
