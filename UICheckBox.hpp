@@ -22,8 +22,14 @@ namespace LIR {
 			const wchar_t* ClassName() const override {
 				return L"BUTTON";
 			}
+
+			WindowClass Class() const override {
+				return WindowClass::CheckBox;
+			}
 		protected:
 			bool				_isChecked = false;
+
+			void AfterDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 		};
 	}
 }

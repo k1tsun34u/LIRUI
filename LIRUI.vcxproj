@@ -49,6 +49,7 @@
     <ClInclude Include="UITextBox.hpp" />
     <ClInclude Include="UIWindow.hpp" />
     <ClInclude Include="UIWorkResult.hpp" />
+    <ClInclude Include="UIWindowClass.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

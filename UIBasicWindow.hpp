@@ -5,6 +5,7 @@
 #include "MouseButton.hpp"
 #include "UIEventArgs.hpp"
 #include "UIEventHandlerArray.hpp"
+#include "UIWindowClass.hpp"
 
 namespace LIR {
 	namespace UI {
@@ -70,6 +71,10 @@ namespace LIR {
 			EventHandlerArray<KeyDownEventArgs&>			OnKeyDown;
 			EventHandlerArray<KeyUpEventArgs&>				OnKeyUp;
 			EventHandlerArray<InputEventArgs&>				OnInput;
+
+			virtual WindowClass Class() const {
+				return WindowClass::BasicWindow;
+			}
 		protected:
 			void GetMouseCtx(LPARAM lParam, ULONGLONG& time, POINT& pos);
 
@@ -106,6 +111,9 @@ namespace LIR {
 			static bool										_rootClassRegistered;
 			static std::atomic<int>							_nextSubclassID;
 			mutable std::shared_mutex						_eventHandlersMutex;
+
+			virtual void BeforeDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) {}
+			virtual void AfterDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) {}
 		private:
 			WorkResult InitSync();
 			static bool RegisterRootClass();
@@ -142,6 +150,14 @@ namespace LIR {
 				WPARAM wParam, LPARAM lParam,
 				UINT_PTR uIdSubclass,
 				DWORD_PTR dwRefData
+			);
+
+			static LRESULT ProcedureHelper(
+				BasicWindow* window,
+				HWND hWnd,
+				UINT uMsg,
+				WPARAM wParam, LPARAM lParam,
+				WNDPROC proc
 			);
 
 			static EventResult DispatchEvent(

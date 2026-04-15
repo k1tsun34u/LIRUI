@@ -72,5 +72,11 @@ namespace LIR {
 			bool					IsExtended;
 			bool					WasDown;
 		};
+
+
+		struct TextChangeEventArgs : public EventArgs {
+			std::wstring			OldText;
+			std::wstring			NewText;
+		};
 	}
 }

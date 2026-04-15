@@ -14,6 +14,8 @@ namespace LIR {
 			std::wstring GetText() const;
 			void SetText(const std::wstring text);
 
+			EventHandlerArray<TextChangeEventArgs&>		OnTextChange;
+
 			void OnPaint(HDC hDC) override {
 				if (_renderer) _renderer->DrawTextBox(this, hDC);
 			}
@@ -21,10 +23,14 @@ namespace LIR {
 			const wchar_t* ClassName() const override {
 				return L"EDIT";
 			}
+
+			WindowClass Class() const override {
+				return WindowClass::TextBox;
+			}
 		protected:
-			std::wstring					_text;
-		private:
-			void HandleInput(InputEventArgs& args);
+			std::wstring								_text;
+
+			void AfterDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 		};
 	}
 }

@@ -10,6 +10,10 @@ namespace LIR {
 				const std::wstring title,
 				int x, int y, int width, int height
 			);
+
+			WindowClass Class() const override {
+				return WindowClass::Window;
+			}
 		};
 	}
 }

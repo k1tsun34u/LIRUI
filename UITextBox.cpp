@@ -12,11 +12,6 @@ LIR::UI::TextBox::TextBox(
 	WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT, 0
 ) {
 	SetText(text);
-
-	OnInput += [this](InputEventArgs& args) -> EventResult {
-		HandleInput(args);
-		return EventResult{};
-	};
 }
 
 std::wstring LIR::UI::TextBox::GetText() const {
@@ -36,21 +31,30 @@ void LIR::UI::TextBox::SetText(const std::wstring text) {
 	});
 }
 
-void LIR::UI::TextBox::HandleInput(InputEventArgs& args) {
+void LIR::UI::TextBox::AfterDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	if (!IsValid()) return;
 
-	if (_renderMode != RenderMode::Native) {
-		if (args.Char == L'\b') {
-			if (!_text.empty()) {
-				wchar_t current = _text.back();
-				_text.pop_back();
-				if (current == L'\n' && !_text.empty() && _text.back() == L'\r') _text.pop_back();
-			}
-		}
-		else if (args.Char == L'\r') _text += L"\r\n";
-		else if (args.Char >= 32) _text.push_back(args.Char);
+	if (_renderMode == RenderMode::Native) {
+		switch (uMsg) {
+		case WM_CHAR:
+		case WM_PASTE:
+		case WM_CUT:
+		case WM_UNDO:
+		case WM_KEYUP:
+			std::wstring oldText = _text;
+			std::wstring newText = GetTitle();
+			if (oldText == newText) break;
 
-		InvalidateRect(_handle, NULL, TRUE);
+			_text = newText;
+
+			TextChangeEventArgs textChangeArgs = {
+				this, GetTickCount64(),
+				oldText, newText
+			};
+
+			OnTextChange.Invoke(textChangeArgs);
+			break;
+		}
 	}
-	else _text = GetTitle(); // TODO: fix this (event before DefWindowProc/DefSubclassProc => no current char)
+	else OutputDebugStringA("Custom TextBox message handler is not implemented yet!\n");
 }

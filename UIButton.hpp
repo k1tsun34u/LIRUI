@@ -18,6 +18,10 @@ namespace LIR {
 			const wchar_t* ClassName() const override {
 				return L"BUTTON";
 			}
+
+			WindowClass Class() const override {
+				return WindowClass::Button;
+			}
 		};
 	}
 }

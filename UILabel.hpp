@@ -18,6 +18,10 @@ namespace LIR {
 			const wchar_t* ClassName() const override {
 				return L"STATIC";
 			}
+
+			WindowClass Class() const override {
+				return WindowClass::Label;
+			}
 		};
 	}
 }

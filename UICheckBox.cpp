@@ -45,3 +45,9 @@ void LIR::UI::CheckBox::SetChecked(bool checked) {
 void LIR::UI::CheckBox::ToggleState() {
 	SetChecked(!_isChecked);
 }
+
+void LIR::UI::CheckBox::AfterDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	if (_renderMode != RenderMode::Native) return;
+
+	if (uMsg == BM_SETCHECK) _isChecked = wParam == BST_CHECKED;
+}

@@ -57,3 +57,9 @@ void LIR::UI::RadioButton::Select() {
 
 	SetChecked(true);
 }
+
+void LIR::UI::RadioButton::AfterDefaultProc(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	if (_renderMode != RenderMode::Native) return;
+
+	if (uMsg == BM_SETCHECK) _isChecked = wParam == BST_CHECKED;
+}

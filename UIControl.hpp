@@ -24,6 +24,10 @@ namespace LIR {
 			RenderMode GetRenderMode() const;
 
 			virtual void OnPaint(HDC hDC) = 0;
+
+			WindowClass Class() const override {
+				return WindowClass::Control;
+			}
 		protected:
 
 			RenderMode							_renderMode;

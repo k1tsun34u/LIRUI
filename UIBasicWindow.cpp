@@ -461,7 +461,8 @@ bool LIR::UI::BasicWindow::RegisterRootClass() {
 	};
 
 	if (RegisterClassExW(&wcexw) == 0) return false;
-	return _rootClassRegistered = true;
+	_rootClassRegistered = true;
+	return _rootClassRegistered;
 }
 
 LIR::UI::EventResult LIR::UI::BasicWindow::HandleCreate(UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -732,18 +733,13 @@ LRESULT CALLBACK LIR::UI::BasicWindow::GlobalWindowProcedure(
 	}
 	else window = (BasicWindow*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
-	EventResult res{};
-	if (window) res = DispatchEvent(window, uMsg, wParam, lParam);
-
+	LRESULT res = ProcedureHelper(window, hWnd, uMsg, wParam, lParam, DefWindowProc);
 	if (uMsg == WM_NCDESTROY) {
-		if (window) {
-			window->_destroyed.store(true, std::memory_order_release);
-			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
-		}
+		if (window) window->_destroyed.store(true, std::memory_order_release);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
 	}
 
-	if (!res.AllowDefault) return 0;
-	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	return res;
 }
 
 LRESULT CALLBACK LIR::UI::BasicWindow::GlobalSubclassProcedure(
@@ -754,19 +750,32 @@ LRESULT CALLBACK LIR::UI::BasicWindow::GlobalSubclassProcedure(
 	DWORD_PTR dwRefData
 ) {
 	BasicWindow* window = (BasicWindow*)dwRefData;
-
-	EventResult res{};
-	if (window) res = DispatchEvent(window, uMsg, wParam, lParam);
-
+	LRESULT res = ProcedureHelper(window, hWnd, uMsg, wParam, lParam, DefSubclassProc);
 	if (uMsg == WM_NCDESTROY) {
-		if (window) {
-			window->_destroyed.store(true, std::memory_order_release);
-			RemoveWindowSubclass(hWnd, GlobalSubclassProcedure, uIdSubclass);
-		}
+		if (window) window->_destroyed.store(true, std::memory_order_release);
+		RemoveWindowSubclass(hWnd, GlobalSubclassProcedure, uIdSubclass);
 	}
 
-	if (!res.AllowDefault) return 0;
-	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+	return res;
+}
+
+LRESULT LIR::UI::BasicWindow::ProcedureHelper(
+	BasicWindow* window,
+	HWND hWnd,
+	UINT uMsg,
+	WPARAM wParam, LPARAM lParam,
+	WNDPROC proc
+) {
+	if (!window) return proc(hWnd, uMsg, wParam, lParam);
+
+	window->BeforeDefaultProc(uMsg, wParam, lParam);
+
+	LRESULT res = 0;
+	EventResult eventRes = DispatchEvent(window, uMsg, wParam, lParam);
+	if (eventRes.AllowDefault) res = proc(hWnd, uMsg, wParam, lParam);
+
+	window->AfterDefaultProc(uMsg, wParam, lParam);
+	return res;
 }
 
 LIR::UI::EventResult LIR::UI::BasicWindow::DispatchEvent(

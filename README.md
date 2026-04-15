@@ -48,7 +48,7 @@ int WINAPI wWinMain(
 	const int txtBoxY = lblHeight * 2;
 	LIR::UI::TextBox txtBox(&mainWindow, L"TextBox", 0, txtBoxY, mainWindowWidth, lblHeight);
 	txtBox.Work();
-	txtBox.OnInput += [](LIR::UI::InputEventArgs& args) -> LIR::UI::EventResult {
+	txtBox.OnTextChange += [](LIR::UI::TextChangeEventArgs& args) -> LIR::UI::EventResult {
 		LIR::UI::TextBox* txtBox = (LIR::UI::TextBox*)args.Sender;
 		args.Sender->GetParent()->SetTitleSync(txtBox->GetText());
 		return LIR::UI::EventResult{};
